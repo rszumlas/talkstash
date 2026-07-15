@@ -1,0 +1,17 @@
+{
+  "extends": "./.wxt/tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "erasableSyntaxOnly": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true
+  },
+  // vitest bundles its own vite - the WxtVitest plugin type clash across the
+  // two vite copies is noise, not a defect; the config is exercised by tests.
+  "exclude": ["vitest.config.ts"]
+}
