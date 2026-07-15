@@ -1,0 +1,81 @@
+/* Talkstash design system - popup entry.
+ * Tokens mirror the Claude Design project (tokens/*.css). Fonts are
+ * self-hosted from /public/fonts - no CDN request leaves the extension. */
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/atkinson-hyperlegible-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/atkinson-hyperlegible-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ibm-plex-mono-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/zilla-slab-600.woff2') format('woff2');
+}
+
+:root {
+  /* Base palette (brand names) */
+  --ink: #232833;
+  --paper: #f4f5f2;
+  --pencil: #8a8f98;
+  --line: #e3e5e0;
+  --stamp-green: #2e7d4f;
+  --stamp-red: #b3402a;
+
+  /* Working tints */
+  --paper-raised: #ffffff;
+  --paper-sunk: #ecede9;
+  --ink-hover: #2c323f;
+  --ink-press: #1b1f27;
+
+  /* Semantic aliases */
+  --border-strong: #cdd0ca;
+  --border-focus: var(--ink);
+
+  /* Type */
+  --font-display: 'Zilla Slab', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --tracking-mono: 0.02em;
+  --tracking-monogram: 0.08em;
+
+  /* Motion */
+  --dur-fast: 90ms;
+  --ease-quiet: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  width: 400px;
+  background: var(--paper);
+}
