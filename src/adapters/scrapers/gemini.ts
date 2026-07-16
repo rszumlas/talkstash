@@ -16,6 +16,12 @@ const TURNS: readonly TurnSelector[] = [
 
 export const geminiScraper: ConversationScraper = {
   platform: 'gemini',
+  // Gemini has temporary chats, but their URL/DOM marker is not verified yet -
+  // until it is, auto-capture cannot tell them apart (documented gap in the
+  // knowledge repo's temporary-chats research note).
+  isEphemeral(): boolean {
+    return false;
+  },
   scrape(doc, sourceUrl): ScrapeResult {
     const messages = collectMessages(doc, TURNS);
     if (messages.length === 0) {

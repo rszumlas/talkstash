@@ -27,17 +27,30 @@ describe('saving a captured conversation', () => {
   it('saves the conversation, assigning an id and a capture date', async () => {
     const { repo, save } = setup();
 
-    const id = await save(capture);
+    const id = await save(capture, 'manual');
 
     const stored = await repo.findById(id);
     expect(stored).not.toBeNull();
     expect(stored?.title).toBe('Refactoring a Svelte store');
     expect(stored?.capturedAt).toBe(1_700_000_000_000);
+    expect(stored?.origin).toBe('manual');
+  });
+
+  it('an explicit save of an auto-captured conversation makes it manual for good', async () => {
+    const { repo, save } = setup();
+    const id = await save(capture, 'auto');
+    expect((await repo.findById(id))?.origin).toBe('auto');
+
+    await save(capture, 'manual');
+    expect((await repo.findById(id))?.origin).toBe('manual');
+
+    await save(capture, 'auto');
+    expect((await repo.findById(id))?.origin).toBe('manual');
   });
 
   it('re-capturing the same source refreshes content while keeping id, tags and folder', async () => {
     const { repo, save } = setup();
-    const id = await save(capture);
+    const id = await save(capture, 'manual');
     const tagged = addTag((await repo.findById(id))!, tagName('svelte'));
     await repo.save(tagged);
 
@@ -45,7 +58,7 @@ describe('saving a captured conversation', () => {
       ...capture,
       messages: [...capture.messages, { role: 'assistant', text: 'Use a .svelte.ts module.' }],
     };
-    const secondId = await save(grown);
+    const secondId = await save(grown, 'auto');
 
     expect(secondId).toBe(id);
     const stored = await repo.findById(id);
@@ -56,8 +69,8 @@ describe('saving a captured conversation', () => {
 
   it('different sources produce separate conversations', async () => {
     const { repo, save } = setup();
-    await save(capture);
-    await save({ ...capture, sourceUrl: 'https://claude.ai/chat/other' });
+    await save(capture, 'manual');
+    await save({ ...capture, sourceUrl: 'https://claude.ai/chat/other' }, 'manual');
 
     expect(await repo.findAll()).toHaveLength(2);
   });

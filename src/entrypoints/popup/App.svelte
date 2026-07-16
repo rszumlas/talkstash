@@ -1,6 +1,7 @@
 <script lang="ts">
   import { sendMessage } from '../../adapters/messaging';
   import type { Conversation } from '../../domain/conversation';
+  import { settingsItem } from '../../utils/storage';
 
   const PLATFORM_STAMPS = {
     chatgpt: { label: 'GPT', title: 'ChatGPT' },
@@ -9,6 +10,8 @@
   } as const;
 
   let query = $state('');
+  let autoCapture = $state(true);
+  let settingsLoaded = $state(false);
   let conversations = $state.raw<readonly Conversation[]>([]);
   let total = $state(0);
   let loading = $state(true);
@@ -32,6 +35,19 @@
     void q;
     void refresh();
   });
+
+  // One-time settings read (external world = extension storage).
+  $effect(() => {
+    void settingsItem.getValue().then((s) => {
+      autoCapture = s.autoCapture;
+      settingsLoaded = true;
+    });
+  });
+
+  async function toggleAutoCapture(): Promise<void> {
+    autoCapture = !autoCapture;
+    await settingsItem.setValue({ autoCapture });
+  }
 
   function startAddingTag(id: string): void {
     confirmingFor = null;
@@ -109,7 +125,7 @@
       <div class="empty">
         <div class="empty-heading">Your stash is empty</div>
         <div class="empty-body">
-          Open a chat on ChatGPT, Claude or Gemini and hit Save to Talkstash.
+          Open a chat on ChatGPT, Claude or Gemini - Talkstash stashes it for you automatically.
         </div>
       </div>
     {:else if conversations.length === 0}
@@ -231,6 +247,21 @@
       {/each}
     {/if}
   </div>
+
+  <footer>
+    <label class="auto-capture">
+      <input
+        type="checkbox"
+        checked={autoCapture}
+        disabled={!settingsLoaded}
+        onchange={() => void toggleAutoCapture()}
+      />
+      <span>
+        Auto-capture: Talkstash automatically keeps a local copy of your conversations. Nothing
+        leaves your browser.
+      </span>
+    </label>
+  </footer>
 </main>
 
 <style>
@@ -518,5 +549,31 @@
   .chip-remove:hover,
   .chip-remove:focus-visible {
     color: var(--ink);
+  }
+
+  footer {
+    flex: 0 0 auto;
+    border-top: 1px solid var(--line);
+    padding: 10px 16px;
+    background: var(--paper);
+  }
+  .auto-capture {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--pencil);
+  }
+  .auto-capture input {
+    flex: 0 0 auto;
+    margin: 2px 0 0;
+    accent-color: var(--ink);
+    cursor: pointer;
+  }
+  .auto-capture input:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 1px;
   }
 </style>

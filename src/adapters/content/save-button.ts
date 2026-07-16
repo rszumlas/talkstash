@@ -64,9 +64,11 @@ const BUTTON_CSS = `
 `;
 
 /**
- * Floating save button - the only UI a content script owns. Scrapes the
- * current page and submits the capture to the background; never touches
- * storage itself.
+ * Floating save button - the only UI a content script owns. Since auto-capture
+ * became the default flow it shows ONLY on ephemeral (temporary) chats, where
+ * auto-capture is deliberately off and saving must stay an explicit act.
+ * Scrapes the current page and submits the capture to the background; never
+ * touches storage itself.
  */
 export async function mountSaveButton(
   ctx: ContentScriptContext,
@@ -118,7 +120,10 @@ export async function mountSaveButton(
           return;
         }
         try {
-          const outcome = await sendMessage('saveConversation', result.capture);
+          const outcome = await sendMessage('saveConversation', {
+            capture: result.capture,
+            origin: 'manual',
+          });
           settle(outcome.ok ? 'saved' : 'error');
           if (!outcome.ok) console.warn(`[talkstash] save failed: ${outcome.error}`);
         } catch (error) {
@@ -126,6 +131,15 @@ export async function mountSaveButton(
           settle('error');
         }
       });
+
+      // Ephemerality can change with SPA navigation (temporary chat opened or
+      // left) - re-evaluate visibility instead of mounting/unmounting.
+      const updateVisibility = () => {
+        const ephemeral = scraper.isEphemeral(document, window.location.href);
+        button.style.display = ephemeral ? '' : 'none';
+      };
+      ctx.addEventListener(window, 'wxt:locationchange', updateVisibility);
+      updateVisibility();
 
       render();
       container.append(style, button);

@@ -1,5 +1,6 @@
 import { defineExtensionMessaging } from '@webext-core/messaging';
 import * as v from 'valibot';
+import { CAPTURE_ORIGINS } from '../domain/capture';
 import type { Conversation } from '../domain/conversation';
 import { PLATFORMS } from '../domain/values';
 
@@ -14,7 +15,7 @@ export type SaveOutcome =
  * senders are trusted code, but the boundary still parses, never casts.
  */
 interface ProtocolMap {
-  saveConversation(capture: unknown): SaveOutcome;
+  saveConversation(input: unknown): SaveOutcome;
   searchConversations(query: string): Conversation[];
   tagConversation(input: { id: string; tag: string }): SaveOutcome;
   untagConversation(input: { id: string; tag: string }): SaveOutcome;
@@ -36,4 +37,10 @@ export const CapturedConversationSchema = v.object({
     ),
     v.minLength(1),
   ),
+});
+
+/** Payload of `saveConversation`: what was scraped plus how the save was initiated. */
+export const SaveConversationInputSchema = v.object({
+  capture: CapturedConversationSchema,
+  origin: v.picklist(CAPTURE_ORIGINS),
 });

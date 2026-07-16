@@ -14,4 +14,10 @@ export type ScrapeResult =
 export interface ConversationScraper {
   readonly platform: Platform;
   scrape(doc: Document, sourceUrl: string): ScrapeResult;
+  /**
+   * Whether the page shows a temporary/incognito chat the platform will not
+   * keep in history. Auto-capture skips ephemeral chats (the user chose
+   * ephemerality); saving one is always an explicit act.
+   */
+  isEphemeral(doc: Document, sourceUrl: string): boolean;
 }

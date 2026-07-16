@@ -1,4 +1,4 @@
-import type { CapturedConversation, CapturedMessage } from './capture';
+import type { CaptureOrigin, CapturedConversation, CapturedMessage } from './capture';
 import type { ConversationId, FolderId, Platform, TagName } from './values';
 
 /**
@@ -15,6 +15,7 @@ export interface Conversation {
   readonly messages: readonly CapturedMessage[];
   readonly tags: readonly TagName[];
   readonly folderId: FolderId | null;
+  readonly origin: CaptureOrigin;
 }
 
 export class EmptyConversation extends Error {
@@ -28,6 +29,7 @@ export function createConversation(
   capture: CapturedConversation,
   id: ConversationId,
   capturedAt: number,
+  origin: CaptureOrigin,
 ): Conversation {
   if (capture.messages.length === 0) throw new EmptyConversation();
   return {
@@ -39,14 +41,19 @@ export function createConversation(
     messages: capture.messages,
     tags: [],
     folderId: null,
+    origin,
   };
 }
 
-/** Re-capture of the same source: refresh content, keep identity, tags and folder. */
+/**
+ * Re-capture of the same source: refresh content, keep identity, tags and folder.
+ * Origin never downgrades - once saved manually, a conversation stays manual.
+ */
 export function refreshFromCapture(
   existing: Conversation,
   capture: CapturedConversation,
   capturedAt: number,
+  origin: CaptureOrigin,
 ): Conversation {
   if (capture.messages.length === 0) throw new EmptyConversation();
   return {
@@ -54,6 +61,7 @@ export function refreshFromCapture(
     title: capture.title,
     messages: capture.messages,
     capturedAt,
+    origin: existing.origin === 'manual' ? 'manual' : origin,
   };
 }
 

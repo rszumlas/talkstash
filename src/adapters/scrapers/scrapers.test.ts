@@ -70,6 +70,28 @@ describe('capturing a conversation from Gemini', () => {
   });
 });
 
+describe('detecting an ephemeral (temporary) chat', () => {
+  it('recognizes a ChatGPT Temporary Chat by its URL parameter', () => {
+    const doc = parseFixture('chatgpt-conversation-2026-07.html');
+    expect(chatgptScraper.isEphemeral(doc, 'https://chatgpt.com/?temporary-chat=true')).toBe(true);
+    expect(
+      chatgptScraper.isEphemeral(doc, 'https://chatgpt.com/?model=gpt-4&temporary-chat=true'),
+    ).toBe(true);
+  });
+
+  it('treats a regular ChatGPT conversation as not ephemeral', () => {
+    const doc = parseFixture('chatgpt-conversation-2026-07.html');
+    expect(chatgptScraper.isEphemeral(doc, 'https://chatgpt.com/c/abc')).toBe(false);
+    expect(chatgptScraper.isEphemeral(doc, 'not a url')).toBe(false);
+  });
+
+  it('Claude and Gemini report not ephemeral until their markers are verified', () => {
+    // Documented gap - see talkstash-knowledge research note on temporary chats.
+    expect(claudeScraper.isEphemeral(garbage, 'https://claude.ai/chat/xyz')).toBe(false);
+    expect(geminiScraper.isEphemeral(garbage, 'https://gemini.google.com/app/1')).toBe(false);
+  });
+});
+
 describe.each<[string, ConversationScraper]>([
   ['ChatGPT', chatgptScraper],
   ['Claude', claudeScraper],

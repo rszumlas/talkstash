@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { InMemoryConversationRepository } from '../adapters/in-memory-conversation-repository';
 import type { CapturedConversation } from '../domain/capture';
 import { makeSaveConversation } from './save-conversation';
@@ -33,8 +33,8 @@ const svelte: CapturedConversation = {
 describe('searching conversations', () => {
   it('returns only conversations matching the query', async () => {
     const { save, search } = setup();
-    await save(norway);
-    await save(svelte);
+    await save(norway, 'manual');
+    await save(svelte, 'manual');
 
     const hits = await search('fjords');
 
@@ -43,8 +43,8 @@ describe('searching conversations', () => {
 
   it('an empty query returns all conversations', async () => {
     const { save, search } = setup();
-    await save(norway);
-    await save(svelte);
+    await save(norway, 'manual');
+    await save(svelte, 'manual');
 
     expect(await search('')).toHaveLength(2);
   });

@@ -1,6 +1,6 @@
 import * as v from 'valibot';
 import { IdbConversationRepository } from '../adapters/idb-conversation-repository';
-import { CapturedConversationSchema, onMessage, type SaveOutcome } from '../adapters/messaging';
+import { onMessage, SaveConversationInputSchema, type SaveOutcome } from '../adapters/messaging';
 import { makeDeleteConversation } from '../application/delete-conversation';
 import type { Clock, IdGenerator } from '../application/ports';
 import { makeSaveConversation } from '../application/save-conversation';
@@ -22,10 +22,10 @@ export default defineBackground(() => {
 
   onMessage('saveConversation', async ({ data }): Promise<SaveOutcome> => {
     try {
-      const capture = v.parse(CapturedConversationSchema, data);
+      const { capture, origin } = v.parse(SaveConversationInputSchema, data);
       const repo = await repoPromise;
       const save = makeSaveConversation({ repo, clock: systemClock, ids: cryptoIds });
-      const id = await save(capture);
+      const id = await save(capture, origin);
       return { ok: true, id };
     } catch (error) {
       return failure(error);

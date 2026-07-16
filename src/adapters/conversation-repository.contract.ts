@@ -15,7 +15,12 @@ const baseCapture: CapturedConversation = {
 };
 
 function conversation(id: string, overrides: Partial<CapturedConversation> = {}) {
-  return createConversation({ ...baseCapture, ...overrides }, conversationId(id), 1_700_000_000_000);
+  return createConversation(
+    { ...baseCapture, ...overrides },
+    conversationId(id),
+    1_700_000_000_000,
+    'manual',
+  );
 }
 
 /**
