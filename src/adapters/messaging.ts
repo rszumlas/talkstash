@@ -44,3 +44,9 @@ export const SaveConversationInputSchema = v.object({
   capture: CapturedConversationSchema,
   origin: v.picklist(CAPTURE_ORIGINS),
 });
+
+/* Structural checks only - domain rules (id/tag validity) live in the value
+ * object factories the use cases call. */
+export const TagInputSchema = v.object({ id: v.string(), tag: v.string() });
+export const ConversationIdInputSchema = v.string();
+export const SearchQuerySchema = v.string();
