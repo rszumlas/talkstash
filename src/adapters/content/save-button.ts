@@ -1,5 +1,6 @@
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
+import { settingsItem } from '../../utils/storage';
 import { sendMessage } from '../messaging';
 import type { ConversationScraper } from '../scrapers/types';
 
@@ -64,11 +65,9 @@ const BUTTON_CSS = `
 `;
 
 /**
- * Floating save button - the only UI a content script owns. Since auto-capture
- * became the default flow it shows ONLY on ephemeral (temporary) chats, where
- * auto-capture is deliberately off and saving must stay an explicit act.
- * Scrapes the current page and submits the capture to the background; never
- * touches storage itself.
+ * Floating save button - the only UI a content script owns. It shows only when
+ * auto-capture is disabled in settings; otherwise there would be no way to save
+ * at all. Scrapes the current page and submits the capture to the background.
  */
 export async function mountSaveButton(
   ctx: ContentScriptContext,
@@ -92,6 +91,13 @@ export async function mountSaveButton(
       button.append(label);
 
       let state: ButtonState = 'idle';
+      let resetTimer: number | null = null;
+      const cancelReset = () => {
+        if (resetTimer !== null) {
+          clearTimeout(resetTimer);
+          resetTimer = null;
+        }
+      };
       const render = () => {
         button.dataset['state'] = state;
         if (state === 'saved') {
@@ -102,15 +108,18 @@ export async function mountSaveButton(
         button.disabled = state === 'saving';
       };
       const settle = (next: ButtonState) => {
+        cancelReset();
         state = next;
         render();
-        ctx.setTimeout(() => {
+        resetTimer = ctx.setTimeout(() => {
+          resetTimer = null;
           state = 'idle';
           render();
         }, 2000);
       };
 
       button.addEventListener('click', async () => {
+        cancelReset();
         state = 'saving';
         render();
         const result = scraper.scrape(document, window.location.href);
@@ -132,13 +141,22 @@ export async function mountSaveButton(
         }
       });
 
-      // Ephemerality can change with SPA navigation (temporary chat opened or
-      // left) - re-evaluate visibility instead of mounting/unmounting.
+      // Visibility depends only on the auto-capture setting (changes live from
+      // the popup) - re-evaluate instead of mounting/unmounting.
+      let autoCaptureEnabled = true;
       const updateVisibility = () => {
-        const ephemeral = scraper.isEphemeral(document, window.location.href);
-        button.style.display = ephemeral ? '' : 'none';
+        button.style.display = autoCaptureEnabled ? 'none' : '';
       };
-      ctx.addEventListener(window, 'wxt:locationchange', updateVisibility);
+      void settingsItem.getValue().then((settings) => {
+        autoCaptureEnabled = settings.autoCapture;
+        updateVisibility();
+      });
+      ctx.onInvalidated(
+        settingsItem.watch((settings) => {
+          autoCaptureEnabled = settings.autoCapture;
+          updateVisibility();
+        }),
+      );
       updateVisibility();
 
       render();
