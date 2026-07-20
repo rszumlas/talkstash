@@ -68,13 +68,13 @@ describe('auto-capturing a conversation', () => {
     expect(submitted).toHaveLength(0);
   });
 
-  it('a failed scrape degrades silently: logged, never thrown', async () => {
+  it('a failed scrape is skipped silently: not logged, not submitted, never thrown', async () => {
     const { run, submitted, logged } = setup({
       scrape: () => ({ kind: 'failure', reason: 'chatgpt: no conversation turns found' }),
     });
     await expect(run()).resolves.toBeUndefined();
     expect(submitted).toHaveLength(0);
-    expect(logged).toHaveLength(1);
+    expect(logged).toHaveLength(0);
   });
 
   it('a failed submit is logged and retried on the next run', async () => {
