@@ -16,6 +16,15 @@ const TURNS: readonly TurnSelector[] = [
 
 export const chatgptScraper: ConversationScraper = {
   platform: 'chatgpt',
+  // Temporary Chats live on chatgpt.com/?temporary-chat=true and never get a
+  // saved /c/<id> URL (verified 2026-07).
+  isEphemeral(_doc, sourceUrl): boolean {
+    try {
+      return new URL(sourceUrl).searchParams.get('temporary-chat') === 'true';
+    } catch {
+      return false;
+    }
+  },
   scrape(doc, sourceUrl): ScrapeResult {
     const messages = collectMessages(doc, TURNS);
     if (messages.length === 0) {

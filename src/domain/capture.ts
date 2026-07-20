@@ -2,6 +2,10 @@ import type { Platform } from './values';
 
 export type MessageRole = 'user' | 'assistant';
 
+/** How a conversation entered the library: captured automatically or saved by the user. */
+export const CAPTURE_ORIGINS = ['auto', 'manual'] as const;
+export type CaptureOrigin = (typeof CAPTURE_ORIGINS)[number];
+
 export interface CapturedMessage {
   readonly role: MessageRole;
   readonly text: string;

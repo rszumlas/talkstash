@@ -1,0 +1,123 @@
+import type { ContentScriptContext } from 'wxt/utils/content-script-context';
+import type { CapturedConversation } from '../../domain/capture';
+import { settingsItem } from '../../utils/storage';
+import { sendMessage } from '../messaging';
+import type { ConversationScraper, ScrapeResult } from '../scrapers/types';
+
+export interface AutoCaptureDeps {
+  scrape: () => ScrapeResult;
+  isEphemeral: () => boolean;
+  isEnabled: () => Promise<boolean>;
+  submit: (capture: CapturedConversation) => Promise<void>;
+  log: (message: string) => void;
+}
+
+/** Change detection: cheap fingerprint instead of deep-comparing whole captures. */
+function signature(c: CapturedConversation): string {
+  const last = c.messages[c.messages.length - 1];
+  return [c.sourceUrl, c.title, c.messages.length, last?.role, last?.text].join('\u0000');
+}
+
+/**
+ * Decision core of auto-capture, free of DOM and timers so it is testable
+ * with plain fakes. Skips when disabled, on ephemeral chats (saving those is
+ * always an explicit act) and when nothing changed since the last submit; a
+ * failure never propagates - the page must not notice us.
+ */
+export function makeAutoCaptureRunner(deps: AutoCaptureDeps): () => Promise<void> {
+  let lastSubmitted: string | null = null;
+  let running = false;
+  return async () => {
+    if (running) return;
+    running = true;
+    try {
+      if (!(await deps.isEnabled())) return;
+      if (deps.isEphemeral()) return;
+      const result = deps.scrape();
+      // An empty/new chat has no turns yet - a normal state, not an error.
+      // Auto-capture fires on every mutation, so logging here would flood the
+      // console; a failed manual save surfaces to the user instead.
+      if (result.kind === 'failure') return;
+      const sig = signature(result.capture);
+      if (sig === lastSubmitted) return;
+      await deps.submit(result.capture);
+      lastSubmitted = sig;
+    } catch (error) {
+      deps.log(`auto-capture failed: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      running = false;
+    }
+  };
+}
+
+export interface DebounceTimers {
+  set(fn: () => void, ms: number): number;
+  clear(id: number): void;
+}
+
+export interface Debouncer {
+  bump(): void;
+  flush(): void;
+}
+
+export function makeDebouncer(run: () => void, delayMs: number, timers: DebounceTimers): Debouncer {
+  let pending: number | null = null;
+  const cancel = () => {
+    if (pending !== null) {
+      timers.clear(pending);
+      pending = null;
+    }
+  };
+  return {
+    bump() {
+      cancel();
+      pending = timers.set(() => {
+        pending = null;
+        run();
+      }, delayMs);
+    },
+    flush() {
+      cancel();
+      run();
+    },
+  };
+}
+
+const SETTLE_MS = 500;
+
+/**
+ * Wires auto-capture into a chat page: captures once on mount, then after DOM
+ * mutations settle, on SPA navigation and when the tab goes hidden. All
+ * timers/listeners go through ctx so an extension update cannot leave zombies.
+ */
+export function mountAutoCapture(ctx: ContentScriptContext, scraper: ConversationScraper): void {
+  const runner = makeAutoCaptureRunner({
+    scrape: () => scraper.scrape(document, window.location.href),
+    isEphemeral: () => scraper.isEphemeral(document, window.location.href),
+    isEnabled: async () => (await settingsItem.getValue()).autoCapture,
+    submit: async (capture) => {
+      const outcome = await sendMessage('saveConversation', { capture, origin: 'auto' });
+      if (!outcome.ok) throw new Error(outcome.error);
+    },
+    log: (message) => console.warn(`[talkstash] ${message}`),
+  });
+
+  const debouncer = makeDebouncer(() => void runner(), SETTLE_MS, {
+    set: (fn, ms) => ctx.setTimeout(fn, ms),
+    clear: (id) => clearTimeout(id),
+  });
+
+  // document.body is deliberately generic: the tightest stable container is a
+  // platform selector, and selectors must not leak out of scraper modules.
+  // The debounce keeps the cost of the wide observation negligible.
+  const observer = new MutationObserver(() => debouncer.bump());
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  ctx.onInvalidated(() => observer.disconnect());
+
+  ctx.addEventListener(window, 'wxt:locationchange', () => debouncer.bump());
+  ctx.addEventListener(document, 'visibilitychange', () => {
+    if (document.visibilityState === 'hidden') debouncer.flush();
+  });
+
+  debouncer.bump();
+}

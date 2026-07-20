@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { InMemoryConversationRepository } from '../adapters/in-memory-conversation-repository';
 import type { CapturedConversation } from '../domain/capture';
 import { makeDeleteConversation } from './delete-conversation';
@@ -29,7 +29,7 @@ function setup() {
 describe('tagging a saved conversation', () => {
   it('adds a normalized tag and persists the change', async () => {
     const { repo, save, tag } = setup();
-    const id = await save(capture);
+    const id = await save(capture, 'manual');
 
     await tag(id, '  Learning ');
 
@@ -38,7 +38,7 @@ describe('tagging a saved conversation', () => {
 
   it('removes a tag and persists the change', async () => {
     const { repo, save, tag, untag } = setup();
-    const id = await save(capture);
+    const id = await save(capture, 'manual');
     await tag(id, 'learning');
 
     await untag(id, 'learning');
@@ -55,7 +55,7 @@ describe('tagging a saved conversation', () => {
 describe('deleting a conversation', () => {
   it('removes the conversation from the repository', async () => {
     const { repo, save, remove } = setup();
-    const id = await save(capture);
+    const id = await save(capture, 'manual');
 
     await remove(id);
 

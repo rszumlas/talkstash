@@ -1,6 +1,13 @@
 import * as v from 'valibot';
 import { IdbConversationRepository } from '../adapters/idb-conversation-repository';
-import { CapturedConversationSchema, onMessage, type SaveOutcome } from '../adapters/messaging';
+import {
+  ConversationIdInputSchema,
+  onMessage,
+  SaveConversationInputSchema,
+  SearchQuerySchema,
+  TagInputSchema,
+  type SaveOutcome,
+} from '../adapters/messaging';
 import { makeDeleteConversation } from '../application/delete-conversation';
 import type { Clock, IdGenerator } from '../application/ports';
 import { makeSaveConversation } from '../application/save-conversation';
@@ -22,10 +29,10 @@ export default defineBackground(() => {
 
   onMessage('saveConversation', async ({ data }): Promise<SaveOutcome> => {
     try {
-      const capture = v.parse(CapturedConversationSchema, data);
+      const { capture, origin } = v.parse(SaveConversationInputSchema, data);
       const repo = await repoPromise;
       const save = makeSaveConversation({ repo, clock: systemClock, ids: cryptoIds });
-      const id = await save(capture);
+      const id = await save(capture, origin);
       return { ok: true, id };
     } catch (error) {
       return failure(error);
@@ -33,17 +40,19 @@ export default defineBackground(() => {
   });
 
   onMessage('searchConversations', async ({ data }) => {
+    const query = v.parse(SearchQuerySchema, data);
     const repo = await repoPromise;
     const search = makeSearchConversations({ repo });
-    const hits = await search(data);
+    const hits = await search(query);
     return [...hits].sort((a, b) => b.capturedAt - a.capturedAt);
   });
 
   onMessage('tagConversation', async ({ data }): Promise<SaveOutcome> => {
     try {
+      const { id, tag } = v.parse(TagInputSchema, data);
       const repo = await repoPromise;
-      await makeTagConversation({ repo })(data.id, data.tag);
-      return { ok: true, id: data.id };
+      await makeTagConversation({ repo })(id, tag);
+      return { ok: true, id };
     } catch (error) {
       return failure(error);
     }
@@ -51,9 +60,10 @@ export default defineBackground(() => {
 
   onMessage('untagConversation', async ({ data }): Promise<SaveOutcome> => {
     try {
+      const { id, tag } = v.parse(TagInputSchema, data);
       const repo = await repoPromise;
-      await makeUntagConversation({ repo })(data.id, data.tag);
-      return { ok: true, id: data.id };
+      await makeUntagConversation({ repo })(id, tag);
+      return { ok: true, id };
     } catch (error) {
       return failure(error);
     }
@@ -61,9 +71,10 @@ export default defineBackground(() => {
 
   onMessage('deleteConversation', async ({ data }): Promise<SaveOutcome> => {
     try {
+      const id = v.parse(ConversationIdInputSchema, data);
       const repo = await repoPromise;
-      await makeDeleteConversation({ repo })(data);
-      return { ok: true, id: data };
+      await makeDeleteConversation({ repo })(id);
+      return { ok: true, id };
     } catch (error) {
       return failure(error);
     }

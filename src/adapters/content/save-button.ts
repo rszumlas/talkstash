@@ -1,5 +1,6 @@
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
+import { settingsItem } from '../../utils/storage';
 import { sendMessage } from '../messaging';
 import type { ConversationScraper } from '../scrapers/types';
 
@@ -64,9 +65,9 @@ const BUTTON_CSS = `
 `;
 
 /**
- * Floating save button - the only UI a content script owns. Scrapes the
- * current page and submits the capture to the background; never touches
- * storage itself.
+ * Floating save button - the only UI a content script owns. It shows only when
+ * auto-capture is disabled in settings; otherwise there would be no way to save
+ * at all. Scrapes the current page and submits the capture to the background.
  */
 export async function mountSaveButton(
   ctx: ContentScriptContext,
@@ -90,6 +91,13 @@ export async function mountSaveButton(
       button.append(label);
 
       let state: ButtonState = 'idle';
+      let resetTimer: number | null = null;
+      const cancelReset = () => {
+        if (resetTimer !== null) {
+          clearTimeout(resetTimer);
+          resetTimer = null;
+        }
+      };
       const render = () => {
         button.dataset['state'] = state;
         if (state === 'saved') {
@@ -100,15 +108,18 @@ export async function mountSaveButton(
         button.disabled = state === 'saving';
       };
       const settle = (next: ButtonState) => {
+        cancelReset();
         state = next;
         render();
-        ctx.setTimeout(() => {
+        resetTimer = ctx.setTimeout(() => {
+          resetTimer = null;
           state = 'idle';
           render();
         }, 2000);
       };
 
       button.addEventListener('click', async () => {
+        cancelReset();
         state = 'saving';
         render();
         const result = scraper.scrape(document, window.location.href);
@@ -118,7 +129,10 @@ export async function mountSaveButton(
           return;
         }
         try {
-          const outcome = await sendMessage('saveConversation', result.capture);
+          const outcome = await sendMessage('saveConversation', {
+            capture: result.capture,
+            origin: 'manual',
+          });
           settle(outcome.ok ? 'saved' : 'error');
           if (!outcome.ok) console.warn(`[talkstash] save failed: ${outcome.error}`);
         } catch (error) {
@@ -126,6 +140,24 @@ export async function mountSaveButton(
           settle('error');
         }
       });
+
+      // Visibility depends only on the auto-capture setting (changes live from
+      // the popup) - re-evaluate instead of mounting/unmounting.
+      let autoCaptureEnabled = true;
+      const updateVisibility = () => {
+        button.style.display = autoCaptureEnabled ? 'none' : '';
+      };
+      void settingsItem.getValue().then((settings) => {
+        autoCaptureEnabled = settings.autoCapture;
+        updateVisibility();
+      });
+      ctx.onInvalidated(
+        settingsItem.watch((settings) => {
+          autoCaptureEnabled = settings.autoCapture;
+          updateVisibility();
+        }),
+      );
+      updateVisibility();
 
       render();
       container.append(style, button);
