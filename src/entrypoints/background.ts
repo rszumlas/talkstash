@@ -13,6 +13,7 @@ import type { Clock, IdGenerator } from '../application/ports';
 import { makeSaveConversation } from '../application/save-conversation';
 import { makeSearchConversations } from '../application/search-conversations';
 import { makeTagConversation, makeUntagConversation } from '../application/tag-conversation';
+import { settingsItem } from '../utils/storage';
 
 const systemClock: Clock = { now: () => Date.now() };
 const cryptoIds: IdGenerator = { next: () => crypto.randomUUID() };
@@ -26,6 +27,14 @@ export default defineBackground(() => {
   // The repository is awaited inside handlers (MV3 service worker can be
   // restarted at any point); listeners are registered synchronously below.
   const repoPromise = IdbConversationRepository.open();
+
+  browser.runtime.onInstalled.addListener(({ reason }) => {
+    if (reason === 'install') {
+      void browser.tabs.create({ url: browser.runtime.getURL('/onboarding.html') });
+    } else if (reason === 'update') {
+      void settingsItem.migrate();
+    }
+  });
 
   onMessage('saveConversation', async ({ data }): Promise<SaveOutcome> => {
     try {

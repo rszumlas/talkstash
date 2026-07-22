@@ -63,3 +63,10 @@ npm run zip     # package for Chrome Web Store
   domains only. No `<all_urls>`.
 - Code stays readable and unobfuscated; the privacy policy (docs/privacy-policy.md)
   states exactly what is read from the DOM and that everything stays local.
+- **Docs-vs-code guardrail (hard rule):** any change to data-handling behavior (what
+  is captured, when, defaults, storage) MUST update `docs/privacy-policy.md` AND
+  `docs/store-listing.md` in the same commit. The store listing file is the source of
+  truth for what gets pasted into the CWS dashboard.
+- Capture-mode consent: auto-capture stays OFF until the user picks a mode on the
+  first-run page (`entrypoints/onboarding/`); the setting is `Settings.captureChoiceMade`
+  in `utils/storage.ts` (versioned item, v1 installs migrate as "already chosen").
