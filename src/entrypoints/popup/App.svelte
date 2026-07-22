@@ -46,7 +46,7 @@
 
   async function toggleAutoCapture(): Promise<void> {
     autoCapture = !autoCapture;
-    await settingsItem.setValue({ autoCapture });
+    await settingsItem.setValue({ autoCapture, captureChoiceMade: true });
   }
 
   function startAddingTag(id: string): void {

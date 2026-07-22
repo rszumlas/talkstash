@@ -2,7 +2,7 @@
   "name": "talkstash",
   "description": "Organize, tag and search your AI chat conversations (ChatGPT, Claude, Gemini) - locally in your browser.",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",

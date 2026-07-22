@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to Talkstash</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="wordmark">Talkstash</span>
+      </header>
+
+      <h1>How should your chats get saved?</h1>
+
+      <p class="local-note">
+        <strong>Everything stays on your device.</strong> Conversations are stored locally in
+        your browser (IndexedDB). Talkstash has no server, no account, no analytics and makes
+        no network requests - nothing you save ever leaves this computer.
+      </p>
+
+      <div class="choices" id="choices">
+        <button type="button" class="choice choice-primary" id="choose-auto">
+          <span class="choice-title">Auto-save <span class="badge">Recommended</span></span>
+          <span class="choice-body">
+            Conversations you open on ChatGPT, Claude and Gemini are saved to your library
+            automatically - your stash builds itself.
+          </span>
+        </button>
+        <button type="button" class="choice" id="choose-manual">
+          <span class="choice-title">Only when I click</span>
+          <span class="choice-body">
+            A "Save to Talkstash" button appears on chat pages. Only conversations you
+            explicitly save are kept.
+          </span>
+        </button>
+      </div>
+
+      <p class="done" id="done" hidden>
+        You're all set. You can change this anytime in the Talkstash popup - and everything
+        still stays local either way. You can close this tab.
+      </p>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
